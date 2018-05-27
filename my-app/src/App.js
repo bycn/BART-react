@@ -1,10 +1,19 @@
 import React, { Component } from 'react';
 import './App.css';
-
+class Result extends Component {
+  render(){
+    if (!this.props.show){
+      return null;
+    }
+    else {
+      return <p>{this.props.message}</p>
+    }
+  }
+}
 class DForm extends Component{
   constructor(props){
     super(props);
-    this.state = {start: "", dir:""};
+    this.state = {start: "", dir:"", message: "", loaded: false};
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
@@ -13,8 +22,29 @@ class DForm extends Component{
   }
   handleSubmit(e) {
     e.preventDefault();
-    alert(this.state.start);
-    alert(this.state.dir);
+    fetch(`http://api.bart.gov/api/etd.aspx?cmd=etd&orig=${this.state.start}&dir=${this.state.dir}&key=MW9S-E7SL-26DU-VV8V&json=y`)
+      .then((res) => res.json())
+      .then((data) => {
+          if (data.root.message.warning) {
+            this.setState({
+              message: data.root.message.warning, 
+              loaded: true
+            });
+          }
+          else{
+            this.setState({
+              message: `A train heading towards ${data.root.station[0]["etd"][0]["destination"]} will arrive in ${data.root.station[0].etd[0].estimate[0].minutes} minutes.`,
+              loaded: true
+            })
+          }
+      },
+        (err) => {
+            this.setState({
+              message: "Invalid input.",
+              loaded: true
+            })
+        }
+    );
   }
   render(){ 
     return (
@@ -28,7 +58,8 @@ class DForm extends Component{
         </label>
         <br />
         <input type="submit" value="Submit"/>
-      </form>
+        <Result show={this.state.loaded} message={this.state.message}/>
+      </form> 
     )
   }
 }
